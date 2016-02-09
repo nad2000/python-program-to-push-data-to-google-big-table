@@ -1,0 +1,33 @@
+application: need-python-program-to-push-data-to-google-big-table
+version: 1
+runtime: python27
+api_version: 1
+threadsafe: true
+
+#default_expiration: "1d"
+
+libraries:
+- name: webapp2
+  version: latest
+- name: jinja2
+  version: latest
+
+handlers:
+- url: /js
+  static_dir: js
+- url: /css
+  static_dir: css
+- url: /stylesheets
+  static_dir: css
+- url: /favicon.ico
+  static_files: favicon.ico
+  upload: favicon.ico
+  # expiration: "100 d"
+- url: /(.*\.html)
+  static_files: html/\1
+  upload: html/(.*\.html)
+- url: /main
+  script: main.app
+- url: /.*
+  script: app.app
+
