@@ -1,4 +1,6 @@
-# Requirement:
+[TOC]
+
+# Original Requirement
 
 1. In each server, there is multiple switches running.  Each switch instance has one directory that store the cdr.
 2. The directory path is specified in a conf file
@@ -53,3 +55,54 @@ The request should immediately return an unique request ID
 Then another request is to ping the reueset ID to ping the status ( waiting, in progress, finished ).  If finished, the result file should be returned.
 There should be a secret key associated with each IP’s.
 The request must provide the secrect key to query CDR of an ip.
+
+# API
+
+## CSV File Upload
+
+Uploads and imports all rows into __Google Datastore__.
+
+* **Entry Point**: **HOST**/cdr[/**<FILENAME>**]
+* **Method**: **POST** (multi part request with a part "file" for the file upload) or **PUT**
+
+When a file gets uploaded using either the query or as a suffix of the URL
+
+
+### Example
+
+```
+curl -X POST https://cdrstore-1216.appspot.com/cdr?switch=SWITCH123 -F "file=@cdr.csv"
+```
+
+Or using **PUT**:
+```
+curl https://cdrstore-1216.appspot.com/cdr?filename=cdr123.csv --upload-file cdr.csv 
+```
+Or with the filename as the URL suffix:
+```
+curl https://cdrstore-1216.appspot.com/cdr?filename=cdr123.csv --upload-file cdr.csv
+```
+
+## Retrieve All Rows
+
+* **Entry Point**: **HOST**/cdr/**<FILENAME>**
+* **Method**: **GET**
+
+### Example
+
+```
+curl https://cdrstore-1216.appspot.com/cdr/cdr.csv
+```
+
+## Delete Imported Rows
+
+* **Entry Point**: **HOST**/cdr/**<FILENAME>**
+* **Method**: **DELETE**
+
+Deletes all row imported from file **<FILENAME>**.
+
+### Example
+
+```
+curl -X DELETE https://cdrstore-1216.appspot.com/cdr/cdr.csv
+```
