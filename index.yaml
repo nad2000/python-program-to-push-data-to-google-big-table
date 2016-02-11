@@ -19,3 +19,9 @@ indexes:
   properties:
   - name: filename
   - name: date_time
+
+- kind: CDRFile
+  properties:
+  - name: filename
+  - name: row_count
+  - name: size

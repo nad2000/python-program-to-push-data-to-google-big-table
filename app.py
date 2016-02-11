@@ -96,6 +96,13 @@ class PyInfoHandler(RequestHandler):
         for f in sorted(req.POST.keys()):
             res.out.write("%s: %s<br/>\n" % (f, dir(req.POST[f])))
 
+class CDRFileHandler(RequestHandler):
+
+    def get(self):
+        res = self.response
+        rows = ndb.gql("SELECT filename, row_count, size FROM CDRFile")
+        res.headers["Content-Type"] = "application/json"
+        json.dump([r.to_dict() for r in rows], res.out, indent=4)
 
 class CDRHandler(RequestHandler):
 
@@ -229,6 +236,7 @@ class UploadHandler(RequestHandler):
 
 app = webapp2.WSGIApplication([
         ('/', MainPage),
+        ("/cdrfile", CDRFileHandler),
         ("/cdr", CDRHandler),
         ("/cdr/(.+)", CDRHandler),
         ("/upload", UploadHandler),

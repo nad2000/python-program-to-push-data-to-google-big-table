@@ -145,7 +145,8 @@ class CDRFile(ndb.Model):
     def delete(cls, filename):
         row_count = 0
         for f in CDRFile.query(CDRFile.filename == filename):
-            row_count += f.row_count
+            if f.row_count is not None:
+                row_count += f.row_count
             for rk in CDR.query(ancestor=f.key).iter(keys_only=True):
                 rk.delete()
             logging.info("DELETING %d ROWS LOADED FROM '%s'", f.row_count, f.filename)
