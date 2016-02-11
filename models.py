@@ -93,11 +93,53 @@ class CDRFile(ndb.Model):
     row_count = ndb.IntegerProperty()
 
     @classmethod
-    def get_rows(cls, filename):
-        cdrf = CDRFile.query(CDRFile.filename == filename).fetch()
+    def get_file(cls, filename):
+        """
+        Returns File Object bases on the name
+        """
+        cdrf = cls.query(cls.filename == filename).fetch()
         if cdrf == []:
-            return []
-        return CDR.query(ancestor=cdrf[0].key)
+            #fo = CDRFile(filename=filename)
+            #fo.put()
+            return None
+        return cdrf[0]
+
+    @classmethod
+    def get_rows(cls, filename=None, **kwargs):
+
+        def convert_value(key, value):
+            """
+            Converty value to the type that aggrees with the property type
+            """
+            prop_type = type(CDR._properties.get(key))
+            if prop_type is ndb.IntegerProperty:
+                value = to_int(value)
+            elif prop_type is ndb.FloatProperty:
+                value = to_float(value)
+            #logging.debug("TYPE: %s VALUE: %r", key, value)
+            return value
+
+        fo = cls.get_file(filename)
+        params = [(k, convert_value(k, v)) for k, v in kwargs.items() if k in CDR._properties]
+        logging.debug("PARAMS: %r", params)
+        if params != []:
+            keys, values = zip(*params)
+            gql = "SELECT * FROM CDR WHERE "
+            if fo is not None:
+                gql += "ANCESTOR IS {0!r} AND ".format(fo.key)
+            #gql += " AND ".join(("{0}={1!r}".format(k, v) for (k, v) in params))
+            gql += " AND ".join(("{0}=:{1}".format(k, i) for (i, k) in enumerate(keys, 1)))
+            logging.info("Executing GQL:\n%s", gql)
+            qry = ndb.gql(gql, *values)
+        else:
+            if filename is None:
+                qry = CDR.query()
+            else:
+                cdrf = cls.query(CDRFile.filename == filename).fetch()
+                if cdrf == []:
+                    return []
+                qry = CDR.query(ancestor=cdrf[0].key)
+        return qry
 
     @classmethod
     def delete(cls, filename):
@@ -106,7 +148,7 @@ class CDRFile(ndb.Model):
             row_count += f.row_count
             for rk in CDR.query(ancestor=f.key).iter(keys_only=True):
                 rk.delete()
-            logging.info("DELETING %d ROWS LOADES FROM '%s'", f.row_count, f.filename)
+            logging.info("DELETING %d ROWS LOADED FROM '%s'", f.row_count, f.filename)
             f.key.delete()
         return row_count
 

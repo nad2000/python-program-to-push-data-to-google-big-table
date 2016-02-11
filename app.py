@@ -112,8 +112,28 @@ class CDRHandler(RequestHandler):
         res = self.response
         req = self.request
         if filename is None:
-            filename = reqt.GET.get("filename")
-        rows = CDRFile.get_rows(filename=filename)
+            filename = req.GET.get("filename")
+        params = {p: req.GET[p] for p in [
+            "release_cause", "start_time_of_date", "answer_time_of_date",
+            "release_cause_from_protocol_stack",
+            "binary_value_of_release_cause_from_protocol_stack",
+            "trunk_id_origination", "origination_source_number",
+            "origination_source_host_name", "origination_destination_number",
+            "origination_destination_host_name", "origination_call_id",
+            "trunk_id_termination", "termination_source_number",
+            "termination_source_host_name", "termination_destination_number",
+            "termination_destination_host_name", "termination_call_id",
+            "final_route_indication", "routing_digits", "call_duration", "pdd",
+            "ring_time", "callduration_in_ms", "conf_id", "ingress_client_id",
+            "ingress_client_rate_table_id", "ingress_client_rate",
+            "ingress_client_bill_time", "ingress_client_cost", "egress_id",
+            "egress_rate_table_id", "egress_rate", "egress_cost",
+            "egress_bill_time", "egress_client_id", "egress_bill_minutes",
+            "ingress_bill_minutes", "ingress_rate_type", "lrn_dnis",
+            "egress_rate_type", "orig_code", "orig_code_name", "orig_country",
+            "term_code", "term_code_name", "term_country", "route_plan",
+            "orig_delay_second", "term_delay_second"] if p in req.GET}
+        rows = CDRFile.get_rows(filename=filename, **params)
         res.headers["Content-Type"] = "application/json"
         json.dump([r.to_dict() for r in rows], res.out, indent=4)
 
@@ -152,9 +172,9 @@ class UploadHandler(RequestHandler):
 
     def get_file_objects(self, filename=None):
         """Creats file object for including into JSON feed."""
-        file_qry = UploadedFile.query().order(-UploadedFile.date)
+        file_qry = CDRFile.query().order(-CDRFile.date)
         if filename:
-            file_qry.filter(UploadedFile.filename == filename)
+            file_qry.filter(CDRFile.filename == filename)
         return [{
             "name": f.filename,
             "type": f.mimetype,
@@ -203,9 +223,7 @@ class UploadHandler(RequestHandler):
         filename = self.request.get("file")
         success = (filename != None)
         if success:
-            file_qry = UploadedFile.query(UploadedFile.filename == filename)
-            for f in file_qry:
-                f.key.delete()
+            CDRFile.delete(filename)
         self.response.headers.add_header("Content-type", "application/json")
         json.dump(success, self.response.out)
 

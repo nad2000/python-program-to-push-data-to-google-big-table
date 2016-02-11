@@ -83,15 +83,16 @@ Or with the filename as the URL suffix:
 curl https://cdrstore-1216.appspot.com/cdr?filename=cdr123.csv --upload-file cdr.csv
 ```
 
-## Retrieve All Rows
+## Retrieve Rows
 
-* **Entry Point**: **HOST**/cdr/**<FILENAME>**
+* **Entry Point**: **HOST**/cdr/**<FILENAME>**[?attribute1=value1&attribute2=value2&...]
 * **Method**: **GET**
 
 ### Example
 
 ```
 curl https://cdrstore-1216.appspot.com/cdr/cdr.csv
+curl "https://cdrstore-1216.appspot.com/cdr/cdr.csv?pdd=437&origination_source_host_name=108.166.175.137"
 ```
 
 ## Delete Imported Rows
