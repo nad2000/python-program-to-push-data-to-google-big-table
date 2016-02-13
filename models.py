@@ -17,15 +17,19 @@ def to_float(str_val):
     else:
         return float(str_val)
 
+
 class Switch(ndb.Model):
     name = ndb.StringProperty(indexed=True)
     ip_addr = ndb.StringProperty()
     public_ip_addr = ndb.StringProperty()
 
 
-
 class CDR(ndb.Model):
     #cdr_file = ndb.KeyProperty()
+
+    @classmethod
+    def get_fields(cls):
+        return cls._properties.keys()
 
     release_cause = ndb.IntegerProperty()
     start_time_of_date = ndb.IntegerProperty()
@@ -105,7 +109,15 @@ class CDRFile(ndb.Model):
         return cdrf[0]
 
     @classmethod
+    def get_fields(cls):
+        return cls._properties.keys()
+
+    @classmethod
     def get_rows(cls, filename=None, **kwargs):
+        """
+        Retrieve row query for (optionally file) 
+        and field values as a filter
+        """
 
         def convert_value(key, value):
             """

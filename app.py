@@ -4,13 +4,16 @@ import urllib
 import json
 import csv
 from cStringIO import StringIO
+import tarfile
+import gzip
+from datetime import datetime
 
 from google.appengine.ext import ndb
 from google.appengine.api import users
 import webapp2
 from webapp2_extras import jinja2
 
-from models import CDRFile
+from models import CDRFile, CDR
 
 def set_trace():
     """Support for debugging GAE application.
@@ -110,7 +113,18 @@ class CDRHandler(RequestHandler):
         res = self.response
         req = self.request
         switch = req.GET.get("switch")
-        row_count = CDRFile.load_file(filename, file_obj)
+        if ".tar" in filename:
+            row_count = 0
+            compression = filename.split('.')[-1]
+            mode = 'r'
+            if compression in ["gz", "bz2"]:
+                mode += ':' + compression
+            with tarfile.open(fileobj=file_obj, mode=mode) as tf:
+                for ti in tf.getmembers():
+                    logging.debug("*** EXTRACTED FILE: %s", ti.path)
+                    row_count += CDRFile.load_file(os.path.basename(ti.path), tf.extractfile(ti))
+        else:
+            row_count = CDRFile.load_file(filename, file_obj)
         res.headers["Content-Type"] = "application/json"
         json.dump(dict(switch=switch, filename=filename, row_count=row_count), res.out)
         return row_count
@@ -120,29 +134,21 @@ class CDRHandler(RequestHandler):
         req = self.request
         if filename is None:
             filename = req.GET.get("filename")
-        params = {p: req.GET[p] for p in [
-            "release_cause", "start_time_of_date", "answer_time_of_date",
-            "release_cause_from_protocol_stack",
-            "binary_value_of_release_cause_from_protocol_stack",
-            "trunk_id_origination", "origination_source_number",
-            "origination_source_host_name", "origination_destination_number",
-            "origination_destination_host_name", "origination_call_id",
-            "trunk_id_termination", "termination_source_number",
-            "termination_source_host_name", "termination_destination_number",
-            "termination_destination_host_name", "termination_call_id",
-            "final_route_indication", "routing_digits", "call_duration", "pdd",
-            "ring_time", "callduration_in_ms", "conf_id", "ingress_client_id",
-            "ingress_client_rate_table_id", "ingress_client_rate",
-            "ingress_client_bill_time", "ingress_client_cost", "egress_id",
-            "egress_rate_table_id", "egress_rate", "egress_cost",
-            "egress_bill_time", "egress_client_id", "egress_bill_minutes",
-            "ingress_bill_minutes", "ingress_rate_type", "lrn_dnis",
-            "egress_rate_type", "orig_code", "orig_code_name", "orig_country",
-            "term_code", "term_code_name", "term_country", "route_plan",
-            "orig_delay_second", "term_delay_second"] if p in req.GET}
+        params = {p: req.GET[p] for p in req.GET if p in CDR.get_fields()}
         rows = CDRFile.get_rows(filename=filename, **params)
-        res.headers["Content-Type"] = "application/json"
-        json.dump([r.to_dict() for r in rows], res.out, indent=4)
+        if "json" in req.GET:
+            res.headers["Content-Type"] = "application/json"
+            json.dump([r.to_dict() for r in rows], res.out, indent=4)
+        else:
+            output_name = (filename if filename is not None else datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S") + ".csv") + ".gz"
+            res.headers["Content-Type"] = "application/x-gzip"
+            res.headers["Content-Endoding"] = "gzip"
+            res.headers["Content-Disposition"] = 'attachment; filename="{}"'.format(output_name)
+            with gzip.GzipFile(mode="wb", compresslevel=9, fileobj=res.out) as gf:
+                cw = csv.writer(gf)
+                cw.writerow(CDR.get_fields())
+                for r in rows:
+                    cw.writerow(r.to_dict().values())
 
     def put(self, filename=None):
         req = self.request
@@ -152,9 +158,11 @@ class CDRHandler(RequestHandler):
 
     def post(self, filename=None):
         req = self.request
+        fs = req.POST.get("file")
         if filename is None:
-            filename = req.POST.get("file").filename
-        self.upload(filename, req.POST.get("file").file)
+            filename = fs.filename
+        logging.debug("FILE: %s, CONTENT TYPE: %s", filename, fs.type)
+        self.upload(filename, fs.file)
 
     def delete(self, filename=None):
         res = self.response
