@@ -85,28 +85,32 @@ curl https://cdrstore-1216.appspot.com/cdr?filename=cdr123.csv --upload-file cdr
 
 ## Retrieve Rows
 
-* **Entry Point**: **HOST**/cdr[/**<FILENAME>**][?attribute1=value1&attribute2=value2&...]
+* **Entry Point**: **HOST**/cdr[/**<FILENAME>**][?[json&]attribute1=value1&attribute2=value2&...]
 * **Method**: **GET**
 
-### Example
+The output is a gzipped CSV stream or JSON, if **json** parameter is present.
+
+### Examples
 
 ```
 # Whole file:
-curl https://cdrstore-1216.appspot.com/cdr/cdr.csv
+curl -OJ https://cdrstore-1216.appspot.com/cdr/cdr.csv
+# or with wget:
+wget --content-disposition "https://cdrstore-1216.appspot.com/cdr/cdr.csv"
 
 # Filtered rows from the file:
-curl "https://cdrstore-1216.appspot.com/cdr/cdr.csv?pdd=437&origination_source_host_name=108.166.175.137"
+curl -OJ "https://cdrstore-1216.appspot.com/cdr/cdr.csv?pdd=437&origination_source_host_name=108.166.175.137"
 
-curl "https://cdrstore-1216.appspot.com/cdr/cdr.csv?pdd=437"
+curl -OJ "https://cdrstore-1216.appspot.com/cdr/cdr.csv?pdd=437"
 
-curl "https://cdrstore-1216.appspot.com/cdr/cdr.csv?origination_source_host_name=108.166.175.137"
+curl -OJ "https://cdrstore-1216.appspot.com/cdr/cdr.csv?origination_source_host_name=108.166.175.137"
 
 # Filtered rows from the store:
-curl "https://cdrstore-1216.appspot.com/cdr?pdd=437&origination_source_host_name=108.166.175.137"
+curl -OJ "https://cdrstore-1216.appspot.com/cdr?pdd=437&origination_source_host_name=108.166.175.137"
 
-curl "https://cdrstore-1216.appspot.com/cdr?pdd=437"
+curl -OJ "https://cdrstore-1216.appspot.com/cdr?pdd=437"
 
-curl "https://cdrstore-1216.appspot.com/cdr?origination_source_host_name=108.166.175.137"
+curl -OJ "https://cdrstore-1216.appspot.com/cdr?origination_source_host_name=108.166.175.137"
 ```
 
 ## Delete Imported Rows
