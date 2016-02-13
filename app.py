@@ -140,7 +140,9 @@ class CDRHandler(RequestHandler):
             res.headers["Content-Type"] = "application/json"
             json.dump([r.to_dict() for r in rows], res.out, indent=4)
         else:
-            output_name = (filename if filename is not None else datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S") + ".csv") + ".gz"
+            output_name = (
+                    filename if filename is not None 
+                    else datetime.utcnow().strftime("CDR%Y-%m-%dT%H:%M:%S") + ".csv") + ".gz"
             res.headers["Content-Type"] = "application/x-gzip"
             res.headers["Content-Endoding"] = "gzip"
             res.headers["Content-Disposition"] = 'attachment; filename="{}"'.format(output_name)
