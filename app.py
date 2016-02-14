@@ -123,6 +123,9 @@ class CDRHandler(RequestHandler):
                 for ti in tf.getmembers():
                     logging.debug("*** EXTRACTED FILE: %s", ti.path)
                     row_count += CDRFile.load_file(os.path.basename(ti.path), tf.extractfile(ti))
+        elif filename.endswith(".gz"):
+            with gzip.GzipFile(mode="rb", fileobj=file_obj) as gf:
+                row_count = CDRFile.load_file('.'.join(filename.split('.')[:-1]), gf)
         else:
             row_count = CDRFile.load_file(filename, file_obj)
         res.headers["Content-Type"] = "application/json"
@@ -196,7 +199,7 @@ class UploadHandler(RequestHandler):
             "name": f.filename,
             "type": f.mimetype,
             "size": f.size,
-            "url": f.url,
+            "url": "cdr/" + f.filename,
             "row_count": f.row_count,
             #"delete_url": self.request.path + '?' + urllib.urlencode({"file": f.filename}),
             "delete_url": "delete?" + urllib.urlencode({"file": f.filename}),
@@ -228,7 +231,7 @@ class UploadHandler(RequestHandler):
             "name": filename,
             "type": mimetype,
             "size": size,
-            "url": uf.url,
+            "url": "cdr/" + filename,
             "row_count": row_count,
             ##"delete_url": self.request.path + '?' + urllib.urlencode({"file": filename}),
             "delete_url": 'delete?' + urllib.urlencode({"file": filename}),
