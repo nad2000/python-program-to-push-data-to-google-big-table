@@ -65,8 +65,7 @@ Uploads and imports all rows into __Google Datastore__.
 * **Entry Point**: **HOST**/cdr[/**<FILENAME>**]
 * **Method**: **POST** (multi part request with a part "file" for the file upload) or **PUT**
 
-When a file gets uploaded using either the query or as a suffix of the URL
-
+When a file gets uploaded using either the query or as a suffix of the URL. The file can be a plain CSV file, gzipped CSV file, a TAR file (compressed or uncompressed) containing multiple CSV files.
 
 ### Example
 
