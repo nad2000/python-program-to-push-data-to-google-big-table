@@ -6,10 +6,14 @@ import argparse
 import json
 import time
 import uuid
+from tempfile import TemporaryFile
+import gzip
+import csv
+import operator
 
 from googleapiclient import discovery
 from oauth2client.client import GoogleCredentials
-from apiclient.http import MediaFileUpload
+from apiclient.http import MediaFileUpload, MediaIoBaseUpload
 
 # Default values:
 PROJECT_ID = "cdrstore-1216"
@@ -158,15 +162,43 @@ fields = [
 
 cdr_schema_fields = [
         {
-            "name": name, 
-            "type": type, 
+            "name": name,
+            "type": type,
             "mode": mode
-        } 
-        for (name, type, mode, skip) in fields]
+        }
+        for (name, type, mode, skip) in fields if not skip]
+
+fields_to_include = [i for i, (_, _, _, skip) in enumerate(fields) if not skip]
+
+def irow(filename):
+    """
+    iterate lines and process them accordingly:
+    - skip fields that need to be skipped
+    - replace "NULL" to None
+    - replace delimmiter "?" to ','
+    """
+    ig = operator.itemgetter(*fields_to_include)
+    with gzip.GzipFile(filename, "rb") if filename.endswith(".gz") else open(filename, "rb") as source_file:
+        source = csv.reader(source_file, delimiter='?')
+        for row in source:
+            yield [None if v is None or v.upper() == "NULL" else v for v in ig(row)]
+
+
+def convert_csv(filename):
+    """
+    Reads original CSV file, removes NULL, fields that should be skipped,
+    and replaces '?' delimiters with ','
+
+    Returns gzipped temporal file.
+    """
+    description = TemporaryFile()
+    destination_csv = csv.writer(gzip.GzipFile(fileobj=description, mode="wb"))
+    destination_csv.writerows(irow(filename))
+    return description
 
 
 def load_table(
-        bigquery, data_path, project_id=PROJECT_ID, 
+        bigquery, data_path, project_id=PROJECT_ID,
         dataset_id=DATASET_ID, table_name=TABLE_NAME, num_retries=5):
     source_format = 'CSV'
     if data_path[-5:].lower() == '.json':
@@ -188,13 +220,15 @@ def load_table(
                         'tableId': table_name
                     },
                     'sourceFormat': source_format,
-                    "fieldDelimiter": '?'
+                    #"fieldDelimiter": '?'
                 }
             }
         },
-        media_body=MediaFileUpload(
-            data_path,
-            mimetype="application/x-gzip" if data_path.split('.')[-1] == "gz" else 'application/octet-stream'))
+        media_body=MediaIoBaseUpload( ##MediaFileUpload(
+            ##data_path,
+            fd=convert_csv(data_path),
+            mimetype="application/x-gzip" if data_path.split('.')[-1] == "gz" else 'application/octet-stream')
+    )
     job = insert_request.execute(num_retries=num_retries)
 
     return job
