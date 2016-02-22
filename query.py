@@ -17,12 +17,26 @@ from cdr import PROJECT_ID, DATASET_ID, TABLE_NAME
 
 
 
-def main(project_id, dataset_id, table_name, data_path,
-         poll_interval, num_retries):
+def main(data_path, project_id, dataset_id, table_id, num_retries,
+        poll_interval, compression, **kwargs):
     
     bigquery = cdr.get_bigquery_service()
+    query = "SELECT * FROM [{0}:{1}.{2}]".format(project_id, dataset_id, table_id)
+    if kwargs != {}:
+        query += " WHERE " + "\n\tAND ".join("{0}={1!r}".format(k, v) for k, v in kwargs.items())
+    query_data=dict(
+            query=query)
+    job = bigquery.jobs()
+    response = job.query(
+            projectId=project_id,
+            body=query_data).execute()
 
-    cdr.poll_job(bigquery, job)
+    print "Query Results:"
+    for row in response["rows"]:
+        print row
+
+    #cdr.poll_job(bigquery, job)
+
 
 
 if __name__ == '__main__':
@@ -31,11 +45,11 @@ if __name__ == '__main__':
         formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument(
         'data_path',
-        help='Path to the CSV data, for example: ')
+        help='Path to the CSV data.')
     parser.add_argument("-P", '--project_id', help='Your Google Cloud project ID (default: {0}).'.format(PROJECT_ID), default=PROJECT_ID)
     parser.add_argument("-d", '--dataset_id', help='A BigQuery dataset ID (default: {0}).'.format(DATASET_ID), default=DATASET_ID)
     parser.add_argument(
-            "-t", '--table_name', help='Name of the table to load data into (defeult: {0}).'.format(TABLE_NAME), default=TABLE_NAME)
+            "-t", '--table_id', help='Name of the table to query (defeult: {0}).'.format(TABLE_NAME), default=TABLE_NAME)
     parser.add_argument(
         '-p', '--poll_interval',
         help='How often to poll the query for completion (seconds).',
@@ -56,16 +70,21 @@ if __name__ == '__main__':
         if not skip and not name.startswith("DUMMY"):
             parser.add_argument(
                 '--' + name,
-                help='Query field "{}".'.format(name),
-                type=int if field_type == cdr.INCLUDE else float if field_type == cdr.FLOAT else str)
+                help='Query field "{0}" ({1}).'.format(name, field_type),
+                type=int if field_type == cdr.INTEGER else float if field_type == cdr.FLOAT else str)
 
     args = parser.parse_args()
+    # extract query properties:
+    properties = {
+            k: v for k, v in vars(args).items()
+            if v is not None and k in cdr.schema_dict.keys()}
 
-#    main(
-#        args.gcs_path,
-#        args.project_id,
-#        args.dataset_id,
-#        args.table_id,
-#        args.num_retries,
-#        args.poll_interval,
-#        compression="GZIP" if args.gzip else "NONE")
+    main(
+        args.data_path,
+        args.project_id,
+        args.dataset_id,
+        args.table_id,
+        args.num_retries,
+        args.poll_interval,
+        compression="GZIP" if args.gzip else "NONE",
+        **properties)
