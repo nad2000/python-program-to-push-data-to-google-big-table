@@ -13,7 +13,7 @@ from oauth2client.client import GoogleCredentials
 from apiclient.http import MediaFileUpload, MediaIoBaseUpload
 
 # Default values:
-PROJECT_ID = "cdrstore-1216"
+PROJECT_ID = "superb-app-116005"
 DATASET_ID = "cdrstore"
 TABLE_NAME = "cdr"
 

@@ -16,27 +16,38 @@ import cdr
 from cdr import PROJECT_ID, DATASET_ID, TABLE_NAME
 
 
+def main(data_path, project_id=PROJECT_ID, dataset_id=DATASET_ID,
+        table_id=TABLE_NAME, num_retries=5, poll_interval=3, compression=True,
+        **kwargs):
 
-def main(data_path, project_id, dataset_id, table_id, num_retries,
-        poll_interval, compression, **kwargs):
+    if data_path is None:
+        data_path = table_id + ".csv"
     
     bigquery = cdr.get_bigquery_service()
     query = "SELECT * FROM [{0}:{1}.{2}]".format(project_id, dataset_id, table_id)
     if kwargs != {}:
         query += " WHERE " + "\n\tAND ".join("{0}={1!r}".format(k, v) for k, v in kwargs.items())
+    # Qyery Job data:
+    job_id = str(uuid.uuid4()) 
     query_data=dict(
-            query=query)
+            query=query,
+            jobReference={
+                'projectId': project_id,
+                'job_id': job_id
+            })
     job = bigquery.jobs()
-    response = job.query(
+    res = job.query(
             projectId=project_id,
             body=query_data).execute()
 
-    print "Query Results:"
-    for row in response["rows"]:
-        print row
+    #return res
+    if compression and not data_path.endswith(".gz"):
+        data_path += ".gz"
 
-    #cdr.poll_job(bigquery, job)
-
+    with gzip.GzipFile(data_path, "wb") if compression else open(data_path, "wb") as df:
+        csv_out = csv.writer(df)
+        csv_out.writerow([c["name"] for c in res["schema"]["fields"]])
+        csv_out.writerows(([e['v'] for e in row['f']] for row in res["rows"]))
 
 
 if __name__ == '__main__':
@@ -45,7 +56,8 @@ if __name__ == '__main__':
         formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument(
         'data_path',
-        help='Path to the CSV data.')
+        help='Path to the CSV data (default: derived from the table name).',
+        nargs='?', default=None)
     parser.add_argument("-P", '--project_id', help='Your Google Cloud project ID (default: {0}).'.format(PROJECT_ID), default=PROJECT_ID)
     parser.add_argument("-d", '--dataset_id', help='A BigQuery dataset ID (default: {0}).'.format(DATASET_ID), default=DATASET_ID)
     parser.add_argument(
