@@ -7,12 +7,15 @@ import gzip
 import csv
 import operator
 import time
+import os
 
 from googleapiclient import discovery
 from oauth2client.client import GoogleCredentials
+from apiclient.http import MediaFileUpload, MediaIoBaseUpload
+from oauth2client.file import Storage
 
 # Default values:
-PROJECT_ID = "cdrstore-1216"
+PROJECT_ID = "superb-app-116005"
 DATASET_ID = "cdrstore"
 TABLE_NAME = "cdr"
 
@@ -156,6 +159,11 @@ fields = [
     ("DUMMY2", STRING, NULLABLE, SKIP),
 ]
 
+schema_dict = {
+        name: (type, mode)
+        for (name, type, mode, skip) in fields if not skip}
+
+
 schema_fields = [
         {
             "name": name,
@@ -201,7 +209,15 @@ def get_bigquery_service():
     global bigquery
 
     # Grab the application's default credentials from the environment.
-    credentials = GoogleCredentials.get_application_default()
+    # credentials = GoogleCredentials.get_application_default()
+    credentials_filename = os.path.join(
+            os.path.dirname(__file__), 
+            "app-credentials.json")
+    if not os.path.exists(credentials_filename):
+        exit("Credentials are missing ({0})! Run ./get_authorized.py to acquire the credentials...".format(credentials_filename))
+
+    storage = Storage(credentials_filename)
+    credentials = storage.get()
 
     # Construct the service object for interacting with the BigQuery API.
     bigquery = discovery.build('bigquery', 'v2', credentials=credentials)
