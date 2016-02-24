@@ -2,6 +2,8 @@
 # -*- coding: utf-8 -*-
 # vim: ai ts=4 sts=4 et sw=4 ft=python
 
+from __future__ import print_function
+
 import argparse
 import uuid
 from tempfile import TemporaryFile
@@ -13,6 +15,7 @@ import operator
 from googleapiclient import discovery
 from oauth2client.client import GoogleCredentials
 from apiclient.http import MediaIoBaseUpload
+from googleapiclient.errors import HttpError
 
 import cdr
 from cdr import PROJECT_ID, DATASET_ID, TABLE_NAME
@@ -56,19 +59,31 @@ def load_table(
 
 def main(project_id, dataset_id, table_name, data_path,
          poll_interval, num_retries):
+    print(project_id, dataset_id, table_name, data_path,
+         poll_interval, num_retries)
     
     bigquery = cdr.get_bigquery_service()
+    
+    while True:
+        try:
+            job = load_table(
+                bigquery,
+                data_path,
+                project_id,
+                dataset_id,
+                table_name,
+                num_retries)
 
-    job = load_table(
-        bigquery,
-        data_path,
-        project_id,
-        dataset_id,
-        table_name,
-        num_retries)
+            cdr.poll_job(bigquery, job)
+            break  ## SUCCESS
 
-    cdr.poll_job(bigquery, job)
-
+        except HttpError as e:
+            if "not found: dataset" in e.content.lower():
+                # create a data set and try again:
+                cdr.create_dataset(bigquery, project_id, dataset_id)
+            
+        except Exception as e:
+            raise Exception, "Unhandled exception occured", e
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(
@@ -95,9 +110,9 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     main(
-        args.project_id,
-        args.dataset_id,
-        args.table_name,
-        args.data_path,
-        args.poll_interval,
-        args.num_retries)
+        project_id=args.project_id,
+        dataset_id=args.dataset_id,
+        table_name=args.table_name,
+        data_path=args.data_path,
+        poll_interval=args.poll_interval,
+        num_retries=args.num_retries)

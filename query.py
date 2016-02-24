@@ -2,6 +2,8 @@
 # -*- coding: utf-8 -*-
 # vim: ai ts=4 sts=4 et sw=4 ft=python
 
+from __future__ import print_function
+
 import argparse
 import uuid
 from tempfile import TemporaryFile

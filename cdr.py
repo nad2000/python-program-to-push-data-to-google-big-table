@@ -2,6 +2,8 @@
 # -*- coding: utf-8 -*-
 # vim: ai ts=4 sts=4 et sw=4 ft=python
 
+from __future__ import print_function
+
 from tempfile import TemporaryFile
 import gzip
 import csv
@@ -214,7 +216,7 @@ def get_bigquery_service():
             os.path.dirname(__file__), 
             "app-credentials.json")
     if not os.path.exists(credentials_filename):
-        exit("Credentials are missing ({0})! Run ./get_authorized.py to acquire the credentials...".format(credentials_filename))
+        exit("Credentials are missing ({0})! Run ./get_credentials.py to acquire the credentials...".format(credentials_filename))
 
     storage = Storage(credentials_filename)
     credentials = storage.get()
@@ -223,6 +225,14 @@ def get_bigquery_service():
     bigquery = discovery.build('bigquery', 'v2', credentials=credentials)
 
     return bigquery
+
+
+def create_dataset(bigquery, project_id, dataset_id):
+    body = body=dict(datasetReference=dict(datasetId=dataset_id))
+    res = bigquery.datasets().insert(projectId=project_id, body=body).execute()
+    print("Data source {0} created. Response:".format(dataset_id))
+    print(res)
+    return res
 
 
 def poll_job(bigquery, job):

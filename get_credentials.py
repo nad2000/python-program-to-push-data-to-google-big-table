@@ -18,15 +18,16 @@ from oauth2client.client import flow_from_clientsecrets
 from oauth2client.file import Storage
 from oauth2client import client
 
-# Enter your Google Developer Project number OR Project ID
-# (you can find it from Google Coud console):
-PROJECT_NUMBER = "cdrstore-1216"
-FLOW = flow_from_clientsecrets(
-        os.path.join(os.path.dirname(__file__), "app-key.json"),
-        scope="https://www.googleapis.com/auth/bigquery")
+from cdr import PROJECT_ID
 
+key_filename = os.path.join(os.path.dirname(__file__), "app-key.json")
 
 def main():
+
+    if not os.path.exists(key_filename):
+        exit("Key file './app-key.json' is missing! Download it using Google Cloud Console....")
+
+    FLOW = flow_from_clientsecrets(key_filename, scope="https://www.googleapis.com/auth/bigquery")
 
     storage = Storage(os.path.join(
         os.path.dirname(__file__), "app-credentials.json"))
@@ -57,7 +58,7 @@ def main():
 
     try:
         datasets = bigquery_service.datasets()
-        listReply = datasets.list(projectId=PROJECT_NUMBER).execute()
+        listReply = datasets.list(projectId=PROJECT_ID).execute()
         print("Dataset list:")
         pprint.pprint(listReply)
 
