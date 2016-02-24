@@ -161,9 +161,9 @@ fields = [
     ("DUMMY2", STRING, NULLABLE, SKIP),
 ]
 
-schema_dict = {
-        name: (type, mode)
-        for (name, type, mode, skip) in fields if not skip}
+schema_dict = dict((
+        (name, (type, mode))
+        for (name, type, mode, skip) in fields if not skip))
 
 
 schema_fields = [
