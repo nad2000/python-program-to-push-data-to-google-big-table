@@ -15,7 +15,7 @@ from apiclient.http import MediaFileUpload, MediaIoBaseUpload
 from oauth2client.file import Storage
 
 # Default values:
-PROJECT_ID = "superb-app-116005"
+PROJECT_ID = ("sipcapture-1187", "cdrstore-1216")[0]
 DATASET_ID = "cdrstore"
 TABLE_NAME = "cdr"
 
