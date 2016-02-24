@@ -59,8 +59,6 @@ def load_table(
 
 def main(project_id, dataset_id, table_name, data_path,
          poll_interval, num_retries):
-    print(project_id, dataset_id, table_name, data_path,
-         poll_interval, num_retries)
     
     bigquery = cdr.get_bigquery_service()
     
