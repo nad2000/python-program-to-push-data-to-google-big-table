@@ -11,6 +11,7 @@ import gzip
 import csv
 import time
 import operator
+import sys
 
 from googleapiclient import discovery
 from oauth2client.client import GoogleCredentials
@@ -80,8 +81,9 @@ def main(project_id, dataset_id, table_name, data_path,
                 # create a data set and try again:
                 cdr.create_dataset(bigquery, project_id, dataset_id)
             
-        except Exception as e:
-            raise Exception, "Unhandled exception occured", e
+        except:
+            print("Unexpected error:", sys.exc_info()[0])
+            raise
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(
